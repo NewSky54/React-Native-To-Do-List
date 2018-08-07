@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { View, StyleSheet, Alert, ListView, SafeAreaView } from "react-native";
+import Icons from "react-native-vector-icons/Entypo";
 import {
   CheckBox,
   ListItem,
@@ -24,22 +25,24 @@ const ds = new ListView.DataSource({
 class Main extends Component {
   state = {
     listViewData: data,
-    newContact: "",
-    checked: false
+    todo: ""
   };
 
   componentDidMount() {
     // Adds each new task to db
     const tasks = firebase.database().ref("/tasks");
-    tasks.on("child_added", data => {
-      const newData = [...this.state.listViewData];
-      newData.push(data);
-      this.setState({ listViewData: newData });
+    tasks.on("value", data => {
+      data = data.val();
+      this.setState({ listViewData: Object.keys(data).map(key => data[key]) });
     });
   }
 
-  addRow = data => {
-    const { newContact, checked } = this.state;
+  addRow = () => {
+    const { todo, checked } = this.state;
+    if (!todo.length) {
+      Alert.alert("Task cannot be empty");
+      return;
+    }
     // Getting the key to each task
     const key = firebase
       .database()
@@ -50,17 +53,21 @@ class Main extends Component {
       .database()
       .ref("/tasks")
       .child(key)
-      .set({ name: data, checked: false });
-    console.log(data)
+      .set({ name: todo, checked: false });
+    // console.log(data);
+    this.setState({ todo: "" });
   };
 
   deleteRow = async (secId, rowId, rowMap, data) => {
     // Deletes task in db
-    await firebase
-      .database()
-      .ref(`tasks/${data.key}`)
-      .set(null);
-
+    const ref = firebase.database().ref(`tasks`);
+    ref.once("value").then(snapshot => {
+      const key = Object.keys(snapshot.val())[rowId];
+      firebase
+        .database()
+        .ref(`tasks/${key}`)
+        .set(null);
+    });
     // Remove task and setState to trigger rerender
     rowMap[`${secId}${rowId}`].props.closeRow();
     const newData = [...this.state.listViewData];
@@ -69,11 +76,23 @@ class Main extends Component {
   };
 
   handleCheckBoxClick = async (data, secId, rowId, rowMap) => {
-    // Not Completed
-    const task = await firebase
-      .database()
-      .ref(`tasks/${data.key}`)
-      .update({ checked: !this.state.checked });
+    const { listViewData } = this.state;
+    const numRowId = parseInt(rowId, 10);
+
+    const ref = firebase.database().ref(`tasks`);
+    ref.once("value").then(snapshot => {
+      const key = Object.keys(snapshot.val())[rowId];
+      firebase
+        .database()
+        .ref(`tasks/${key}`)
+        .update({ checked: !listViewData[rowId].checked });
+    });
+
+    const updatedListViewData = listViewData.map(
+      (d, idx) => (idx === numRowId ? { ...d, checked: !d.checked } : d)
+    );
+
+    this.setState({ listViewData: updatedListViewData });
   };
 
   onSignoutPress = () => {
@@ -88,35 +107,40 @@ class Main extends Component {
   };
 
   render() {
-    const { newContact, listViewData, checked } = this.state;
+    const { todo, listViewData, checked } = this.state;
     return (
       <SafeAreaView style={styles.container}>
-        <Header>
-          <Content>
-            <Item>
-              <Input
-                onChangeText={newContact => this.setState({ newContact })}
-                placeholder="Add name"
-              />
-              <Button onPress={() => this.addRow(newContact)}>
-                <Icon name="add" />
-              </Button>
-            </Item>
-          </Content>
-        </Header>
+        <Item style={{ height: 60 }}>
+          <Input
+            value={todo}
+            onChangeText={todo => this.setState({ todo })}
+            placeholder="Add name"
+          />
+          <Button
+            onPress={this.addRow}
+            style={{
+              width: 45,
+              height: 45,
+              justifyContent: "center",
+              alignSelf: "center",
+              marginHorizontal: 8
+            }}
+          >
+            <Icons name="add-to-list" color="#fff" size={30} />
+          </Button>
+        </Item>
         <Content>
           <List
-            enableEmptySections
             dataSource={ds.cloneWithRows(listViewData)}
             renderRow={(data, secId, rowId, rowMap) => (
               <ListItem style={{ paddingLeft: 10 }}>
                 <CheckBox
-                  checked={checked} // Not finished
+                  checked={listViewData[rowId].checked} // Not finished
                   onPress={() =>
                     this.handleCheckBoxClick(data, secId, rowId, rowMap)
                   }
                 />
-                <Text style={{ paddingLeft: 10 }}>{data.val().name}</Text>
+                <Text style={{ paddingLeft: 10 }}>{data.name}</Text>
               </ListItem>
             )}
             renderRightHiddenRow={(data, secId, rowId, rowMap) => (

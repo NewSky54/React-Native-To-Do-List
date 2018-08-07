@@ -9,8 +9,7 @@ import {
 } from "react-native";
 import { Button, Form, Item, Input, Label, Icon } from "native-base";
 import * as firebase from "firebase";
-const remote =
-  "http://cdn.wonderfulengineering.com/wp-content/uploads/2014/10/wood-wallpaper-23.jpg ";
+const remote = "https://i.imgur.com/wNtUql0.png";
 
 class Login extends React.Component {
   state = {
@@ -23,7 +22,7 @@ class Login extends React.Component {
       this.props.navigation.navigate("Signup");
     } catch (err) {
       console.log("Error in signUpUser", err);
-    }f
+    }
   };
 
   loginUser = async (email, password) => {
@@ -34,6 +33,7 @@ class Login extends React.Component {
         .then(
           user => {
             if (!user.object) this.props.navigation.navigate("Main");
+            return this.setState({ email: "", password: "" });
           },
           error => {
             Alert.alert(error.message);
@@ -45,6 +45,7 @@ class Login extends React.Component {
   };
 
   render() {
+    const { email, password } = this.state;
     return (
       <ImageBackground style={styles.flex} source={{ uri: remote }}>
         <Form style={styles.container}>
@@ -52,6 +53,7 @@ class Login extends React.Component {
             <Icon style={styles.color} name="person" />
             <Label style={styles.color}>Email</Label>
             <Input
+              value={email}
               style={{ color: "#fff" }}
               autoCorrect={false}
               autoCapitalize="none"
@@ -62,6 +64,7 @@ class Login extends React.Component {
             <Icon style={styles.color} name="lock" />
             <Label style={styles.color}>Password</Label>
             <Input
+              value={password}
               style={{ color: "#fff" }}
               secureTextEntry={true}
               autoCorrect={false}
@@ -71,12 +74,23 @@ class Login extends React.Component {
           </Item>
 
           <Button
-            style={{ marginTop: 20 }}
-            full
+            style={{
+              marginTop: 20,
+              height: 50,
+              width: "50%",
+              alignSelf: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.3)"
+            }}
+            light
+            bordered
+            transparent={true}
             rounded
             onPress={() => this.loginUser(this.state.email, this.state.password)}
           >
-            <Text style={{ color: "white", fontSize: 16 }}>Log in</Text>
+            <Text style={{ color: "white", fontSize: 16, fontWeight: "500" }}>
+              Log in
+            </Text>
           </Button>
           <View
             style={{
@@ -85,7 +99,7 @@ class Login extends React.Component {
               alignItems: "center"
             }}
           >
-            <Text style={{ color: "grey", paddingRight: 10 }}>
+            <Text style={{ color: "#D3D3D3", paddingRight: 10 }}>
               Don't have an account?
             </Text>
 
